@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INTERFACE="ens33"
+INTERFACE="ens193"
 START=$(date +%s)
 
 spawn_processes() {
@@ -16,10 +16,11 @@ collect_system_metrics() {
     ifstat -i "$INTERFACE" 1 2
 }
 
+spawn_processes
 
 while true
 do
-    SECONDS_ELAPSED=(((date +%s) - START))
+    SECONDS_ELAPSED=$(( $(date +%s) - START ))
 
     echo "Seconds since start: $SECONDS_ELAPSED"
 
