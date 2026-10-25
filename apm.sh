@@ -32,26 +32,29 @@ collect_process_metrics() {
 	    ps -p $pid -o %cpu=,%mem=
 	done
 }
+# Create system metrics CSV file
+echo "seconds_since_start,rx_rate,tx_rate,disk_writes,available_disk_capacity" > system_metrics.csv
 
 #Output -> <seconds since script start>, <RX data rate>, <TX data rate>, <disk writes>, <available disk capacity>
 collect_system_metrics() {
-	#RX + TX data rates
-	if [ $IFSID = "." ]
-	then
-		ifstat -d1 "$INTERFACE"
-		IFSID=$!
-	else
-		ifstat "$INTERFACE" | grep "$INTERFACE" | awk '{print $6,$7,$8,$9}'
-	fi
+    SECONDS_ELAPSED=$(( $(date +%s) - START ))
+    # RX + TX data rates
+    if [ "$IFSID" = "." ]
+    then
+        ifstat -d1 "$INTERFACE" &
+        IFSID=$!
+    fi
 
-	#Disk writes
-	iostat -dk sda | awk '$1 == "sda" {print $4}'
-
-	#Disk capacity
-	df -B1M / | awk '/\/$/ {print $4}'
+    NETWORK=$(ifstat "$INTERFACE" | tail -1)
+    RX_RATE=$(echo "$NETWORK" | awk '{print $6}')
+    TX_RATE=$(echo "$NETWORK" | awk '{print $8}')
+    # Disk writes
+    DISK_WRITES=$(iostat -dk sda | awk '$1 == "sda" {print $4}')
+    # Disk capacity
+    DISK_CAPACITY=$(df -B1M / | awk '/\/$/ {print $4}')
+    # Write metrics to CSV
+    echo "$SECONDS_ELAPSED,$RX_RATE,$TX_RATE,$DISK_WRITES,$DISK_CAPACITY" >> system_metrics.csv
 }
-
-
 
 #Main
 #Everything is being sent to terminal for debug, creating and adding to files is our last step
