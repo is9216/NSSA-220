@@ -6,11 +6,14 @@ INTERFACE="ens192"
 START=$(date +%s)
 IP="192.168.195.222"
 IFSID="."
+
 cleanup() {
-	kill $IFSID
-	for pid in "${PIDS[@]}"
+	echo
+	echo "Script was run for $SECONDS_ELAPSED seconds."
+	pkill ifstat
+	for i in {1..6}
 	do
-		kill $pid
+		pkill "APM$i"
 	done
 }
 trap cleanup EXIT
@@ -27,9 +30,16 @@ spawn_processes() {
 
 #Output -> <seconds since script start>, <%CPU>, <%memory>
 collect_process_metrics() {
+	SECONDS_ELAPSED=$(( $(date +%s) - START ))
 	for pid in "${PIDS[@]}"
 	do
-	    ps -p $pid -o %cpu=,%mem=
+		CPU=$(ps -p $pid -o%cpu=)
+		MEM=$(ps -p $pid -o%mem=)
+
+		#Found on StackOverflow, removes all leading spaces from the CPU and MEM outputs
+		CPU=${CPU//[[:space:]]/}
+		MEM=${MEM//[[:space:]]/}
+		echo "$SECONDS_ELAPSED,$CPU,$MEM" >> "$pid"_metrics.csv
 	done
 }
 # Create system metrics CSV file
@@ -60,6 +70,11 @@ collect_system_metrics() {
 #Everything is being sent to terminal for debug, creating and adding to files is our last step
 spawn_processes
 
+for pid in "${PIDS[@]}"
+do
+	echo "seconds_since_start,%CPU,%memory" > "$pid"_metrics.csv
+done
+	
 while true
 do
     echo
@@ -67,7 +82,6 @@ do
     echo "Seconds since start: $SECONDS_ELAPSED"
 
     collect_process_metrics
-    echo
     collect_system_metrics
 
     sleep 5
