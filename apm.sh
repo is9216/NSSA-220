@@ -49,15 +49,9 @@ echo "seconds_since_start,rx_rate,tx_rate,disk_writes,available_disk_capacity" >
 collect_system_metrics() {
     SECONDS_ELAPSED=$(( $(date +%s) - START ))
     # RX + TX data rates
-    if [ "$IFSID" = "." ]
-    then
-        ifstat -d1 "$INTERFACE" &
-        IFSID=$!
-    fi
-
     NETWORK=$(ifstat "$INTERFACE" | tail -1)
-    RX_RATE=$(echo "$NETWORK" | awk '{print $6}')
-    TX_RATE=$(echo "$NETWORK" | awk '{print $8}')
+    RX_RATE=$(echo "$NETWORK" | awk '{print $1}')
+    TX_RATE=$(echo "$NETWORK" | awk '{print $2}')
     # Disk writes
     DISK_WRITES=$(iostat -dk sda | awk '$1 == "sda" {print $4}')
     # Disk capacity
